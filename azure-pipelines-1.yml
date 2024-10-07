@@ -1,0 +1,53 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  - master  # Change this to the branch you want to trigger the pipeline
+
+pool:
+  vmImage: 'ubuntu-latest'  # Or a self-hosted agent with Docker installed
+
+variables:
+  # Set these in Azure DevOps as pipeline variables or secret variables
+  azureSqlServer: 'sqlproperties.database.windows.net'
+  azureSqlDatabase: 'your-database-name'
+  azureSqlUser: 'roman_prystaiko'
+  azureSqlPassword: '1q3e5t7u:Properties'  # Store this as a secret variable in Azure DevOps
+  outputFolder: 'schemaspy-output'
+  jdbcDriverPath: 'path-to-sqljdbc42.jar'  # Adjust this to the correct JDBC driver path
+
+steps:
+  - task: UsePythonVersion@0  # Ensures Python is available (for schemaSpy dependencies if needed)
+    inputs:
+      versionSpec: '3.x'
+      addToPath: true
+
+  - script: |
+      echo "Downloading JDBC driver..."
+      wget https://github.com/microsoft/mssql-jdbc/releases/download/v9.4.0/mssql-jdbc-9.4.0.jre8.jar -O $(Pipeline.Workspace)/sqljdbc42.jar
+    displayName: 'Download JDBC Driver'
+
+  - task: DockerInstaller@0  # Install Docker on the agent (if using self-hosted)
+    displayName: 'Install Docker'
+
+  - script: |
+      echo "Running SchemaSpy with Docker..."
+      docker run --rm -v $(Pipeline.Workspace)/$(outputFolder):/output schemaspy/schemaspy \
+        -t mssql08 \
+        -db ${azureSqlDatabase} \
+        -host ${azureSqlServer} \
+        -u ${azureSqlUser} \
+        -p ${azureSqlPassword} \
+        -s dbo \  # specify schema (e.g., 'dbo')
+        -dp /output/sqljdbc42.jar \
+        -o /output \
+        -connprops "useSSL=false"
+    displayName: 'Run SchemaSpy'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Pipeline.Workspace)/$(outputFolder)'
+      ArtifactName: 'schemaspy-output'
+    displayName: 'Publish SchemaSpy Output'
