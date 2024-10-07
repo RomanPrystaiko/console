@@ -14,6 +14,7 @@ variables:
   azureSqlServer: 'sqlproperties.database.windows.net'
   azureSqlDatabase: 'your-database-name'
   azureSqlUser: 'roman_prystaiko'
+  azureSqlPort: '1433'
   azureSqlPassword: '1q3e5t7u:Properties'  # Store this as a secret variable in Azure DevOps
   outputFolder: 'schemaspy-output'
   jdbcDriverPath: 'path-to-sqljdbc42.jar'  # Adjust this to the correct JDBC driver path
@@ -38,6 +39,7 @@ steps:
         -t mssql08 \
         -db ${azureSqlDatabase} \
         -host ${azureSqlServer} \
+        -port ${azureSqlPort} \
         -u ${azureSqlUser} \
         -p ${azureSqlPassword} \
         -s dbo \  # specify schema (e.g., 'dbo')
